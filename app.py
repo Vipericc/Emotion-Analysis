@@ -3,14 +3,27 @@ app.py
 Flask 后端 - 课程评论情感分析 API
 """
 from flask import Flask, render_template, request, jsonify
-from snownlp import SnowNLP
+import os
 
 app = Flask(__name__)
+
+# 全局变量，延迟初始化
+SnowNLP = None
+
+
+def get_snownlp():
+    """延迟导入 SnowNLP，避免启动时加载语料库超时"""
+    global SnowNLP
+    if SnowNLP is None:
+        from snownlp import SnowNLP as SNLP
+        SnowNLP = SNLP
+    return SnowNLP
 
 
 def analyze_single_review(text, pos_threshold=0.6, neg_threshold=0.4):
     """分析单条评论"""
-    s = SnowNLP(text)
+    SNLP = get_snownlp()
+    s = SNLP(text)
     score = round(s.sentiments, 4)
 
     if score > pos_threshold:
@@ -54,8 +67,5 @@ def analyze():
 
 
 if __name__ == '__main__':
-    print("=" * 50)
-    print("  课程评论情感分析服务已启动")
-    print("  访问地址：http://127.0.0.1:8080")
-    print("=" * 50)
-    app.run(debug=False, port=8080)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
